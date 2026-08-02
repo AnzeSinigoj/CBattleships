@@ -100,47 +100,47 @@ void print_field() {
     clear_screen();
     const char *letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     
-    print_x_axis:
-        printf("   ");
-        for(int i = 0; i < field_size; i++) printf("%3c", letters[i]);
-        printf("\n");
+    printf("Your field:%*cEnemy's field:\n\n", field_size*3-1, ' ');
 
-
-    printf("Firendly field:");
-    for (size_t i = 0; i < field_size; i++) printf("%3c", ' ');
-    printf("Enemy field:\n");
-
+    printf("%3c", ' ');
+    for(int i = 0; i < field_size; i++) printf("%3c", letters[i]);
+    
+    printf("\t%3c", ' ');
+    for(int i = 0; i < field_size; i++) printf("%3c", letters[i]);
+    printf("\n");
+    
     for(size_t i = 1; i <= field_size; i++) {
-        if(i < 10) printf("0%d  ", (int)i);
-        else printf("%d  ", (int)i);
+        if(i < 10) printf("0%-2d", (int)i);
+        else printf("%-3d", (int)i);
 
         for(size_t j = 0; j < field_size; j++) {
             switch (current_player_field[i-1][j]) {
                 case FULL:
-                    printf(" # ");
+                    printf("%3c", '#');
                     break;
                 case HIT:
-                    printf(" X ");
+                    printf("%3c", 'X');
                     break;
                 default:
-                    printf(" ~ ");
+                    printf("%3c", '~');
                     break;
             }
         }
 
-        if(i < 10) printf("\t0%d  ", (int)i);
-        else printf("\t%d  ", (int)i);
+        if(i < 10) printf("\t0%-2d", (int)i);
+        else printf("\t%-3d", (int)i);
 
         for(size_t j = 0; j < field_size; j++) {
+
            switch (current_enemy_field[i-1][j]) {
                 case HIT:
-                    printf(" X ");
+                    printf("%3c", 'X');
                     break;
-                case MISS:
-                    printf(" 0 ");
+                case MISS: 
+                    printf("%3c", '0');
                     break;
                 default:
-                    printf(" ~ ");
+                    printf("%3c", '~');
                     break;
             }
         }
@@ -156,15 +156,18 @@ void print_field() {
 */
 void spawn_ships(uint8_t **field) {
     const float density = 0.2;
-    const uint8_t num_of_ships = field_size * field_size * density; 
+    const uint8_t ship_budget = field_size * field_size * density; 
     const uint8_t ship_sizes[] = {2,2,3,3,4,4,5,5,6,6};
 
-    for (uint8_t i = 0; i < num_of_ships; i++) {
+    uint8_t budget_used = 0;
+
+    while (budget_used < ship_budget) {
         const uint16_t MAX_ATTEMPTS = UINT16_MAX;
         uint16_t attempts = 0;
-
-        while (1) {
-            bool placed = false;
+        bool placed = false;
+        
+        uint8_t i = 0;
+        while (!placed) {
             uint8_t size = ship_sizes[i % 10];
             int8_t x = rand() % field_size;
             int8_t y = rand() % field_size;
@@ -233,8 +236,10 @@ void spawn_ships(uint8_t **field) {
 
                     break;
             }
+            budget_used += size;
             attempts++;
-            if(placed) break;
+            i++;
+
             if(attempts == MAX_ATTEMPTS){
                 clear_screen();
                 printf("Error! Unable to spawn ships! (Max attempts reached)\n");
