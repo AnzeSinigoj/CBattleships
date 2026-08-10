@@ -104,7 +104,7 @@ void print_field() {
 
     printf("%3c", ' ');
     for(int i = 0; i < field_size; i++) printf("%3c", letters[i]);
-    
+
     printf("\t%3c", ' ');
     for(int i = 0; i < field_size; i++) printf("%3c", letters[i]);
     printf("\n");
@@ -168,23 +168,34 @@ void spawn_ships(uint8_t **field) {
         
         uint8_t i = 0;
         while (!placed) {
-            uint8_t size = ship_sizes[i % 10];
+            const uint8_t size = ship_sizes[i % 10];
+            const uint8_t padding = size*2 + 6; //Around the ship plus 2x3 top and bottom
+            const uint8_t size_plus_padding = size + padding;
+
             int8_t x = rand() % field_size;
             int8_t y = rand() % field_size;
             uint8_t direction = rand() % 4;
 
             switch (direction) {
-                uint8_t free_blocks = 0;
+                uint8_t free_spaces = 0;
                 //North
                 case 0:
                     if(y - (size-1) < 0) break;
-                    free_blocks = 0;
+                    free_spaces = 0;
 
-                    for (uint8_t j = 0; j < size; j++) {
-                        if (field[y-j][x] != FULL) free_blocks++;
+                    for (int16_t j = y+1; j >= y-(size); j--) {
+                        if(j < 0 || j >= field_size) break;
+                        
+                        for (int16_t k = x-1; k <= x+1; k++) {
+                            if(k < 0 || k >= field_size) {
+                                free_spaces++;
+                                continue;
+                            }
+                            if (field[j][k] != FULL) free_spaces++; 
+                        }
                     }
 
-                    if (free_blocks == size) {
+                    if (free_spaces == size_plus_padding ) {
                         for (uint8_t j = 0; j < size; j++) field[y-j][x] = FULL;
                         placed = true;
                     }
@@ -193,13 +204,21 @@ void spawn_ships(uint8_t **field) {
                 //South
                 case 1:
                     if (y + (size-1) >= field_size) break;
-                    free_blocks = 0;
+                    free_spaces = 0;
 
-                    for (uint8_t j = 0; j < size; j++) {
-                        if (field[y+j][x] != FULL) free_blocks++;
+                    for (int16_t j = y-1; j <= y+(size); j++) {
+                        if(j < 0 || j >= field_size) break;
+                        
+                        for (int16_t k = x-1; k <= x+1; k++) {
+                            if(k < 0 || k >= field_size) {
+                                free_spaces++;
+                                continue;
+                            }
+                            if (field[j][k] != FULL) free_spaces++; 
+                        }
                     }
 
-                    if (free_blocks == size) {
+                    if (free_spaces == size_plus_padding) {
                         for (uint8_t j = 0; j < size; j++) field[y+j][x] = FULL;
                         placed = true;
                     }
@@ -208,13 +227,25 @@ void spawn_ships(uint8_t **field) {
                 //East
                 case 2:
                     if (x + (size-1) >= field_size) break;
-                    free_blocks = 0;
+                    free_spaces = 0;
+                    bool failed = false;
 
-                    for (uint8_t j = 0; j < size; j++) {
-                        if (field[y][x+j] != FULL) free_blocks++;
+                    for (int16_t j = y-1; j <= y+1 && !failed; j++) {
+                        if(j < 0 || j >= field_size) {
+                            free_spaces++;
+                            continue;
+                        }
+                        
+                        for (int16_t k = x-1; k <= x+size; k++) {
+                            if(k < 0 || k >= field_size) {
+                                failed = true;
+                                break;
+                            }
+                            if (field[j][k] != FULL) free_spaces++; 
+                        }
                     }
 
-                    if (free_blocks == size) {
+                    if (free_spaces == size_plus_padding) {
                         for (uint8_t j = 0; j < size; j++) field[y][x+j] = FULL;
                         placed = true;
                     }
@@ -223,13 +254,25 @@ void spawn_ships(uint8_t **field) {
                 //West
                 case 3:
                     if(x - (size-1) < 0) break;
-                    free_blocks = 0;
+                    free_spaces = 0;
+                    failed = false;
 
-                    for (uint8_t j = 0; j < size; j++) {
-                        if (field[y][x-j] != FULL) free_blocks++;
+                    for (int16_t j = y-1; j <= y+1 && !failed; j++) {
+                        if(j < 0 || j >= field_size) {
+                            free_spaces++;
+                            continue;
+                        }
+                        
+                        for (int16_t k = x+1; k >= x-size; k--) {
+                            if(k < 0 || k >= field_size) {
+                                failed = true;
+                                break;
+                            }
+                            if (field[j][k] != FULL) free_spaces++; 
+                        }
                     }
 
-                    if (free_blocks == size) {
+                    if (free_spaces == size_plus_padding) {
                         for (uint8_t j = 0; j < size; j++) field[y][x-j] = FULL;
                         placed = true;
                     }
