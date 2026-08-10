@@ -11,6 +11,14 @@ uint8_t **field_1;
 uint8_t **field_2;
 uint8_t **current_player_field;
 uint8_t **current_enemy_field;
+uint8_t player_1_score;
+uint8_t player_2_score;
+uint8_t score_for_win;
+
+struct point {
+    uint8_t x;
+    uint8_t y;
+} typedef point;
 
 typedef enum {
     EMPTY,
@@ -26,7 +34,10 @@ void print_field();
 
 //Field operations
 void spawn_ships(uint8_t **field);
-void shoot(uint8_t x, uint8_t y);
+bool shoot(point p);
+
+//User input gathering and processing
+point read_strike_coordinates();
 
 int main () {
     srand(time(NULL));
@@ -50,7 +61,36 @@ int main () {
     current_player_field = field_1;
     current_enemy_field = field_2;
 
-    print_field();
+    uint8_t current_player = 1;
+    while (player_1_score != score_for_win || player_2_score != score_for_win) {
+        if(current_player_field == current_enemy_field) {
+            clear_screen();
+            printf("Error! Field missmatch!\n");
+        }
+
+        switch (current_player) {
+            case 1:
+                print_field();
+
+                //Pass turn 
+                current_player = 2;
+                current_player_field = field_2;
+                current_enemy_field = field_1;
+                break;
+            case 2:
+                print_field();  
+
+                //Pass turn
+                current_player = 1;
+                current_player_field = field_1;
+                current_enemy_field = field_2;
+                break;
+            default:
+                clear_screen();
+                printf("Error! Failed to determine turns!\n");
+                exit(-1);
+        }
+    }
 }
 
 // This function clears the screen when called
@@ -158,7 +198,7 @@ void spawn_ships(uint8_t **field) {
     const float density = 0.2;
     const uint8_t ship_budget = field_size * field_size * density; 
     const uint8_t ship_sizes[] = {2,2,3,3,4,4,5,5,6,6};
-
+    score_for_win = ship_budget;
     uint8_t budget_used = 0;
 
     while (budget_used < ship_budget) {
@@ -294,11 +334,26 @@ void spawn_ships(uint8_t **field) {
 
 /*
 * This function takes a shoot at the specified coordinates and sinks a ship if its located on the specified coordinates.
+* Returns true if a ship was hit and false if its a miss.
 */
-void shoot(uint8_t x, uint8_t y) {
-    if(current_enemy_field[y][x] == FULL) {
-        current_enemy_field[y][x] = HIT;
-        return;
+bool shoot(point p) {
+    if(current_enemy_field[p.y][p.x] == FULL) {
+        current_enemy_field[p.y][p.x] = HIT;
+        return true;
     }
-    current_enemy_field[y][x] = MISS;
+    current_enemy_field[p.y][p.x] = MISS;
+    return false;
+}
+
+/*
+* This function reads user input and parses it to determine user-specified coordinates
+* Returns a point struct, in case it fails to parse input it returns a struct of {UINT8_MAX, UINT8_MAX}.
+*/
+point read_strike_coordinates() {
+    char buffer[32];
+    scanf("%s", buffer);
+
+    
+
+    return (point){UINT8_MAX, UINT8_MAX};
 }
