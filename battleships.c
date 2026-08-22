@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <time.h>
+#include <unistd.h>
 
 //Global variables
 uint8_t field_size;
@@ -13,6 +14,7 @@ uint8_t **current_player_field;
 uint8_t **current_enemy_field;
 uint8_t player_1_score;
 uint8_t player_2_score;
+uint8_t current_player = 1;
 uint8_t score_for_win;
 
 struct point {
@@ -39,8 +41,13 @@ bool shoot(point p);
 //User input gathering and processing
 point read_strike_coordinates();
 
+//Gameplay functions
+void play_turn();
+
 int main () {
     srand(time(NULL));
+    //Turn on green color
+    printf("\033[32m");
     print_menu();
 
     field_1 = malloc(field_size*sizeof(uint8_t*));
@@ -61,8 +68,7 @@ int main () {
     current_player_field = field_1;
     current_enemy_field = field_2;
 
-    uint8_t current_player = 1;
-    while (player_1_score != score_for_win || player_2_score != score_for_win) {
+    while (player_1_score < score_for_win || player_2_score < score_for_win) {
         if(current_player_field == current_enemy_field) {
             clear_screen();
             printf("Error! Field missmatch!\n");
@@ -70,27 +76,53 @@ int main () {
 
         switch (current_player) {
             case 1:
-                print_field();
+                play_turn();
 
                 //Pass turn 
                 current_player = 2;
                 current_player_field = field_2;
                 current_enemy_field = field_1;
+
+                //Hide first player's ships
+                clear_screen();
+                printf("Player %d: press any key to play your turn...", current_player);
+                getchar();
                 break;
             case 2:
-                print_field();  
+                play_turn();
 
                 //Pass turn
                 current_player = 1;
                 current_player_field = field_1;
                 current_enemy_field = field_2;
                 break;
+
+                //Hide second player's ships
+                clear_screen();
+                printf("Player %d: press any key to play your turn...", current_player);
+                getchar();
             default:
                 clear_screen();
                 printf("Error! Failed to determine turns!\n");
                 exit(-1);
         }
     }
+    clear_screen();
+
+    if(player_1_score >= score_for_win) {
+        printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+        printf("|                 Player 1 wins!              |\n");
+        printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+    } else if (player_2_score >= score_for_win) {
+        printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+        printf("|                 Player 2 wins!              |\n");
+        printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+    } else {
+        printf("Error! Failed to determine winner.\n");
+    }
+
+    //Reset back to original color
+    printf("\033[0m");
 }
 
 // This function clears the screen when called
@@ -112,7 +144,7 @@ void print_menu() {
     
     while(1) {
         char input[32];
-        if (scanf("%31s", input) != 1) { 
+        if (fgets(input, sizeof(input), stdin) == NULL) {
             printf("\nError! Bad read!\n");
             exit(1);
         }
@@ -348,12 +380,69 @@ bool shoot(point p) {
 /*
 * This function reads user input and parses it to determine user-specified coordinates
 * Returns a point struct, in case it fails to parse input it returns a struct of {UINT8_MAX, UINT8_MAX}.
+* Accepts input in this format: "LetterNumber" ex. A12
 */
 point read_strike_coordinates() {
-    char buffer[32];
-    scanf("%s", buffer);
+    char buffer[8];
+    fgets(buffer, sizeof(buffer), stdin);
 
-    
+    const char *letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    char letter = buffer[0];
+    char numbers_unparsed[] = {buffer[1], buffer[2], '\0'};
+    uint8_t numbers = atoi(numbers_unparsed);
+    uint8_t index_stopped = UINT8_MAX;
 
+    //Convert to upper case
+    if(letter > 'Z') letter -= 32;
+
+    for(uint8_t i = 0; i < 26; i++) {
+        if (letter == letters[i]) {
+            index_stopped = i;
+            break;
+        }
+    }
+
+    if(index_stopped == UINT8_MAX) {
+        printf("Error! The entered symbol is not a letter in the range of A-Z!\n");
+        goto fail;
+    }
+
+    if(numbers <= 0 || numbers > 26) {
+        printf("Error! The entered number does not fit the range of [1,26]!\n");
+        goto fail;
+    }
+
+    return (point){index_stopped, numbers-1}; //Adjust numbers for zero indexing
+
+fail:
     return (point){UINT8_MAX, UINT8_MAX};
+}
+
+/*
+* This function plays a turn for the player who has the turn right now.
+*/
+void play_turn() {
+    print_field();
+    point coordinates;
+    while (true) {
+        printf("\nEnter strike coordinates: ");
+        coordinates = read_strike_coordinates();
+            
+        if((coordinates.x == UINT8_MAX) || (coordinates.y == UINT8_MAX)) {
+            printf("Error! Failed to parse coordinates!\n");
+            continue;
+        } else break;
+    }   
+
+    bool status = shoot(coordinates);
+    print_field(); //Refresh the screen to display the new shoot status
+    if (status) {
+        if(current_player == 1) player_1_score++;
+        else player_2_score++;
+        printf("Hit! An enemy ship was hit in the strike.\n");
+    }
+    else printf("Miss! Shot landed in the water.\n");
+
+    printf("\nPress any key to continue...");
+    getchar();
 }
