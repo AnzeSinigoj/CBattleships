@@ -42,6 +42,7 @@ bool shoot(point p);
 point read_strike_coordinates();
 
 //Gameplay functions
+bool check_for_win();
 void play_turn();
 
 int main () {
@@ -68,7 +69,7 @@ int main () {
     current_player_field = field_1;
     current_enemy_field = field_2;
 
-    while (player_1_score < score_for_win || player_2_score < score_for_win) {
+    while (1) {
         if(current_player_field == current_enemy_field) {
             clear_screen();
             printf("Error! Field missmatch!\n");
@@ -77,6 +78,11 @@ int main () {
         switch (current_player) {
             case 1:
                 play_turn();
+                if(check_for_win()) {
+                    //Reset back to original color
+                    printf("\033[0m");
+                    exit(0);
+                }
 
                 //Pass turn 
                 current_player = 2;
@@ -90,39 +96,29 @@ int main () {
                 break;
             case 2:
                 play_turn();
+                if(check_for_win()) {
+                    //Reset back to original color
+                    printf("\033[0m");
+                    exit(0);
+                }
 
                 //Pass turn
                 current_player = 1;
                 current_player_field = field_1;
                 current_enemy_field = field_2;
-                break;
 
                 //Hide second player's ships
                 clear_screen();
                 printf("Player %d: press any key to play your turn...", current_player);
                 getchar();
+                break;
             default:
                 clear_screen();
                 printf("Error! Failed to determine turns!\n");
                 exit(-1);
         }
     }
-    clear_screen();
 
-    if(player_1_score >= score_for_win) {
-        printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-        printf("|                 Player 1 wins!              |\n");
-        printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-    } else if (player_2_score >= score_for_win) {
-        printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-        printf("|                 Player 2 wins!              |\n");
-        printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-    } else {
-        printf("Error! Failed to determine winner.\n");
-    }
-
-    //Reset back to original color
-    printf("\033[0m");
 }
 
 // This function clears the screen when called
@@ -140,7 +136,7 @@ void print_menu() {
     printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
     printf("|                 Battleships                 |\n");
     printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-    printf("\nEnter the size of the playing field [5,26]: ");
+    printf("\nEnter the size of the playing field [6,26]: ");
     
     while(1) {
         char input[32];
@@ -151,8 +147,8 @@ void print_menu() {
 
         int value = atoi(input);
         if(value != 0) {
-            if(value < 5 || value > 26) {
-                printf("Error! The entered value is outside of the range of [5,26]!\n");
+            if(value < 6 || value > 26) {
+                printf("Error! The entered value is outside of the range of [6,26]!\n");
             } else {
                 field_size = value;
                 return;
@@ -160,7 +156,7 @@ void print_menu() {
         } else {
             printf("Error! Wrong value entered!\n");
         }
-        printf("Enter a new size [5-26]: ");
+        printf("Enter a new size [6,26]: ");
     }
 }
 
@@ -232,15 +228,20 @@ void spawn_ships(uint8_t **field) {
     const uint8_t ship_sizes[] = {2,2,3,3,4,4,5,5,6,6};
     score_for_win = ship_budget;
     uint8_t budget_used = 0;
+    uint8_t ship_index = 0;
 
     while (budget_used < ship_budget) {
         const uint16_t MAX_ATTEMPTS = UINT16_MAX;
+        const uint8_t size = ship_sizes[ship_index % 10];
         uint16_t attempts = 0;
         bool placed = false;
-        
-        uint8_t i = 0;
+
+        if (size + 2 > field_size) {
+            ship_index++;
+            continue;
+        }
+
         while (!placed) {
-            const uint8_t size = ship_sizes[i % 10];
             const uint8_t padding = size*2 + 6; //Around the ship plus 2x3 top and bottom
             const uint8_t size_plus_padding = size + padding;
 
@@ -351,16 +352,16 @@ void spawn_ships(uint8_t **field) {
 
                     break;
             }
-            budget_used += size;
-            attempts++;
-            i++;
 
+            attempts++;
             if(attempts == MAX_ATTEMPTS){
                 clear_screen();
                 printf("Error! Unable to spawn ships! (Max attempts reached)\n");
                 exit(-1);
             }
         }
+        budget_used += size;
+        ship_index++;
     }
 }
 
@@ -407,6 +408,11 @@ point read_strike_coordinates() {
         goto fail;
     }
 
+    if(index_stopped >= field_size) {
+        printf("Error! The entered longitude is outside the war zone!\n");
+        goto fail;
+    }
+
     if(numbers <= 0 || numbers > 26) {
         printf("Error! The entered number does not fit the range of [1,26]!\n");
         goto fail;
@@ -416,6 +422,30 @@ point read_strike_coordinates() {
 
 fail:
     return (point){UINT8_MAX, UINT8_MAX};
+}
+
+/*
+* This function checks if any player has achvived a win and prints the victory screen.
+* Returns true if a player won and false if no player has won yet.
+*/
+bool check_for_win(){
+       if(player_1_score >= score_for_win) {
+        clear_screen();
+        printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+        printf("|                 Player 1 wins!              |\n");
+        printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+        printf("Congratulations capitan your orders helped to defeat the enemy!\n");
+        return true;
+    } else if (player_2_score >= score_for_win) {
+        clear_screen();
+        printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+        printf("|                 Player 2 wins!              |\n");    
+        printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+        printf("Congratulations capitan your orders helped to defeat the enemy!\n");
+        return true;
+    } else {
+        return false;
+    }
 }
 
 /*
