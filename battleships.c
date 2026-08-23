@@ -220,7 +220,7 @@ void print_field() {
 /*
 * This function spawns ships into the passed field.
 * The number of spawned ships is determined by the size of the field.
-* The function works by bruteforce and if its unable to place a ship in 2^16 iterations it stops the program.
+* The function works by bruteforce and if its unable to place a ship in 500K iterations it stops the program.
 */
 void spawn_ships(uint8_t **field) {
     const float density = 0.2;
@@ -231,9 +231,9 @@ void spawn_ships(uint8_t **field) {
     uint8_t ship_index = 0;
 
     while (budget_used < ship_budget) {
-        const uint16_t MAX_ATTEMPTS = UINT16_MAX;
+        const uint32_t MAX_ATTEMPTS = 500000;
         const uint8_t size = ship_sizes[ship_index % 10];
-        uint16_t attempts = 0;
+        uint32_t attempts = 0;
         bool placed = false;
 
         if (size + 2 > field_size) {
@@ -242,7 +242,7 @@ void spawn_ships(uint8_t **field) {
         }
 
         while (!placed) {
-            const uint8_t padding = size*2 + 6; //Around the ship plus 2x3 top and bottom
+            const uint8_t padding = size*2 + 2; //Around the ship plus top and bottom
             const uint8_t size_plus_padding = size + padding;
 
             int8_t x = rand() % field_size;
@@ -256,7 +256,7 @@ void spawn_ships(uint8_t **field) {
                     if(y - (size-1) < 0) break;
                     free_spaces = 0;
 
-                    for (int16_t j = y+1; j >= y-(size); j--) {
+                    for (int16_t j = y; j >= y-(size - 1); j--) {
                         if(j < 0 || j >= field_size) break;
                         
                         for (int16_t k = x-1; k <= x+1; k++) {
@@ -267,6 +267,10 @@ void spawn_ships(uint8_t **field) {
                             if (field[j][k] != FULL) free_spaces++; 
                         }
                     }
+                    
+                    bool top_free = (y+1 >= field_size) || (field[y+1][x] != FULL);
+                    bool bottom_free = (y - size < 0) || (field[y-size][x] != FULL);
+                    if (top_free && bottom_free) free_spaces += 2;
 
                     if (free_spaces == size_plus_padding ) {
                         for (uint8_t j = 0; j < size; j++) field[y-j][x] = FULL;
@@ -279,7 +283,7 @@ void spawn_ships(uint8_t **field) {
                     if (y + (size-1) >= field_size) break;
                     free_spaces = 0;
 
-                    for (int16_t j = y-1; j <= y+(size); j++) {
+                    for (int16_t j = y; j <= y+(size -1); j++) {
                         if(j < 0 || j >= field_size) break;
                         
                         for (int16_t k = x-1; k <= x+1; k++) {
@@ -290,6 +294,11 @@ void spawn_ships(uint8_t **field) {
                             if (field[j][k] != FULL) free_spaces++; 
                         }
                     }
+
+                    top_free = (y - 1 < 0) || (field[y-1][x] != FULL);
+                    bottom_free = (y + size >= field_size) || (field[y+size][x] != FULL);
+                    if (top_free && bottom_free) free_spaces += 2;
+
 
                     if (free_spaces == size_plus_padding) {
                         for (uint8_t j = 0; j < size; j++) field[y+j][x] = FULL;
@@ -309,7 +318,7 @@ void spawn_ships(uint8_t **field) {
                             continue;
                         }
                         
-                        for (int16_t k = x-1; k <= x+size; k++) {
+                        for (int16_t k = x; k <= x+(size-1); k++) {
                             if(k < 0 || k >= field_size) {
                                 failed = true;
                                 break;
@@ -317,6 +326,10 @@ void spawn_ships(uint8_t **field) {
                             if (field[j][k] != FULL) free_spaces++; 
                         }
                     }
+
+                    bool left_free = (x-1 < 0) || (field[y][x-1] != FULL);
+                    bool right_free = (x+size >= field_size) || (field[y][x+size] != FULL);
+                    if(left_free && right_free) free_spaces+=2;
 
                     if (free_spaces == size_plus_padding) {
                         for (uint8_t j = 0; j < size; j++) field[y][x+j] = FULL;
@@ -336,7 +349,7 @@ void spawn_ships(uint8_t **field) {
                             continue;
                         }
                         
-                        for (int16_t k = x+1; k >= x-size; k--) {
+                        for (int16_t k = x; k >= x-(size-1); k--) {
                             if(k < 0 || k >= field_size) {
                                 failed = true;
                                 break;
@@ -344,6 +357,10 @@ void spawn_ships(uint8_t **field) {
                             if (field[j][k] != FULL) free_spaces++; 
                         }
                     }
+
+                    left_free = (x+1 >= field_size) || (field[y][x+1] != FULL);
+                    right_free = (x-size < 0) || (field[y][x-size] != FULL);
+                    if(left_free && right_free) free_spaces+=2;
 
                     if (free_spaces == size_plus_padding) {
                         for (uint8_t j = 0; j < size; j++) field[y][x-j] = FULL;
