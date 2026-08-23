@@ -89,7 +89,7 @@ int main () {
         switch (current_player) {
             case 1:
                 play_turn();
-                if(check_for_win()) exit(0);
+                if(check_for_win()) goto end;
 
                 //Pass turn 
                 current_player = 2;
@@ -103,7 +103,7 @@ int main () {
                 break;
             case 2:
                 play_turn();
-                if(check_for_win()) exit(0);
+                if(check_for_win()) goto end;
 
                 //Pass turn
                 current_player = 1;
@@ -122,6 +122,14 @@ int main () {
         }
     }
 
+end:
+    for(uint8_t i = 0; i < field_size; i++) {
+        free(field_1[i]);
+        free(field_2[i]);
+    }
+    free(field_1);
+    free(field_2);
+    exit(0);
 }
 
 // This function clears the screen when called
@@ -425,16 +433,19 @@ point read_strike_coordinates() {
 
     if(index_stopped == UINT8_MAX) {
         cprintf(RED,"Error! The entered symbol is not a letter in the range of A-Z!\n");
+        cprintf(CYAN,"Reminder: The correct format of coordinates is LetterNumber for example: A1, B13, C20...\n");
         goto fail;
     }
 
     if(index_stopped >= field_size) {
         cprintf(RED,"Error! The entered longitude is outside the war zone!\n");
+        cprintf(CYAN,"Reminder: The correct format of coordinates is LetterNumber for example: A1, B13, C20...\n");
         goto fail;
     }
 
-    if(numbers <= 0 || numbers > 26) {
+    if(numbers <= 0 || numbers > field_size) {
         cprintf(RED,"Error! The entered number does not fit the range of [1,26]!\n");
+        cprintf(CYAN,"Reminder: The correct format of coordinates is LetterNumber for example: A1, B13, C20...\n");
         goto fail;
     }
 
