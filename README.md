@@ -28,9 +28,16 @@ The first player to hit every enemy ship square wins.
 
 ### About
 
-I decided to rewrite this game in C, based on a university assignment I originally misinterpreted. My interpretation turned out better than the actual assignment, but the code was written in a rush with no time, so I wanted to clean it up — and I ended up redesigning everything, this time in C instead of C++.
+This game is based on a university assignment I originally misinterpreted. My 
+interpretation turned out better than the actual assignment, but the code was 
+written in a rush with no time, so I rebuilt the idea from scratch in C instead 
+of C++, without referencing the old code, and ended up redesigning everything 
+along the way.
 
-This project helped me stay in shape with my C knowledge and taught me a few more C quirks along the way. I'm satisfied with the outcome, and it was significantly easier than [CTetris](https://github.com/AnzeSinigoj/CTetris).
+This project helped me stay in shape with my C knowledge and taught me a few 
+more C quirks. I'm satisfied with the outcome, and it was significantly easier 
+than [CTetris](https://github.com/AnzeSinigoj/CTetris), though the ship-placement 
+algorithm took more debugging than the rest of the project combined.
 
 ### Game screenshot
 
